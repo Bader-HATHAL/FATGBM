@@ -53,6 +53,3 @@ To use the core functions, ensure you source the supOU script first, as the FATG
 source("RGamma_supOU_s.R")
 source("FATGBM.R")
 
-# Example: Simulate the process
-# [Insert a 1-line example command here if you have one, otherwise delete this comment]call (replace with actual example from your code)
-# price <- FATGBM_pricing(S0=100, K=100, T=1, ...)
