@@ -18,18 +18,18 @@ This repository provides:
 
 ### Core Models
 * `RGamma_supOU_s.R`: Implementation of supOU process with inverse gamma marginals used for activity time modeling.
-* * `FATGBM.R`: Main script containing the FATGBM model definition and option pricing logic.
+* * `FATGBM.R`: Implementation of FATGBM model and option pricing.
 
 ### Figures (Reproduction)
 The following scripts generate the figures found in the manuscript:
-* `fig123.R`: Generates Figures 1, 2, and 3 (Trajectories and densities).
+* `fig123.R`: Generates Figures 1, 2, and 3 .
 * `fig5.R` - `fig7.R`: Generates Figures 5 through 7.
 * `fig8-9.R`: Generates Figures 8 and 9.
-* `fig10.R` & `fig11.R`: Generates volatility surfaces and calibration plots.
+* `fig10.R` & `fig11.R`: Generates Figure 10 and 11.
 
 ### Tables (Pricing & Analysis)
-* `table2.R`: Code to reproduce Table 2 (Parameter estimation/comparison).
-* `table3pricing.R`: Code to reproduce Table 3 (Option pricing results).
+* `table2.R`: Code to reproduce Table 2 (Parameter estimation /comparison).
+* `table3pricing.R`: Code to reproduce Table 3 (Option pricing comparison).
 
 ## Prerequisites
 
