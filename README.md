@@ -6,19 +6,19 @@ This repository contains the R implementation of the **FATGBM model**,  and opti
 
 ## Overview
 
-The FATGBM model generalizes standard Geometric Brownian Motion by incorporating **Fractal Activity Time** to better capture the leptokurtic nature and volatility clustering observed in financial markets. 
+The FATGBM is a stochastic model that generalizes the classical geometric Brownian motion (GBM) by accommodating a number of properties that are not captured by Brownian motion but which are observed in the data, such as dependence in absolute and squared returns (but not returns themselves) and a marginal distribution that is heavier tailed and higher peaked than Gaussian,
 
 This repository provides:
-1.  **Stochastic Process Simulation:** Algorithms to simulate the **superposition of Ornstein-Uhlenbeck (supOU)** process, which is used to simulate the fractal activity time 
-2.  **FATGBM Model:** Core functions to simulate the Fractal Activity Time Geometric Brownian Motion process.
+1.  **Stochastic Process Simulation:** Algorithms to simulate the **superposition of Ornstein-Uhlenbeck (supOU)** process with inverse gamma marginals. This algorithms is used to simulate the fractal activity time. 
+2.  **FATGBM Model:** Core functions to simulate the fractal activity time geometric Brownian motion process.
 3.  **Option Pricing:** Numerical methods for pricing barrier options under FATGBM.
 4.  **Reproduction Scripts:** Code to reproduce the figures and tables presented in the paper.
 
 ## Repository Structure
 
 ### Core Models
-* `FATGBM.R`: Main script containing the FATGBM model definition and option pricing logic.
-* `RGamma_supOU_s.R`: Implementation of the Random Gamma process / Superposed Ornstein-Uhlenbeck (supOU) process used for activity time modeling.
+* `RGamma_supOU_s.R`: Implementation of supOU process with inverse gamma marginals used for activity time modeling.
+* * `FATGBM.R`: Main script containing the FATGBM model definition and option pricing logic.
 
 ### Figures (Reproduction)
 The following scripts generate the figures found in the manuscript:
