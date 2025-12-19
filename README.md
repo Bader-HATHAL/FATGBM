@@ -2,7 +2,7 @@
 
 This repository contains the R implementation of the **FATGBM model**,  and option pricing methods presented in the research paper:
 
-> **[A risky asset Student model with long-range dependence through fractal activity time]** > *Authors: [Nikolai N. Leonenko, Andrey Pepelyshev and Bader Saidan]* > *Journal/Conference: [Insert Journal Name, Year]* > [Link to paper if available (e.g., arXiv or DOI)]
+> **[A risky asset Student model with long-range dependence through fractal activity time]** > *Authors: [Nikolai N. Leonenko, Andrey Pepelyshev and Bader Saidan]* > 
 
 ## Overview
 
