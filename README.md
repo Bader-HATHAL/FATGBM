@@ -11,19 +11,16 @@ The **FATGBM** is a stochastic model that generalizes the classical Geometric Br
 This repository provides:
 1.  **Stochastic Process Simulation:** Algorithms to simulate the **superposition of Ornstein-Uhlenbeck (supOU)** process with inverse gamma marginals. This algorithm is used to simulate the fractal activity time.
 2.  **FATGBM Model:** Core functions to simulate the Fractal Activity Time Geometric Brownian Motion process.
-3.  **Option Pricing:** Numerical pricing methods implemented for four specific cases:
-    * **Standard European Options** under FATGBM.
-    * **Standard European Options** under GBM.
-    * **Barrier Options** under FATGBM.
-    * **Barrier Options** under GBM.
+3.  **Option Pricing:** Numerical pricing methods implemented for the following contract types:
+    * **Standard European Options:** Pricing for both **Call** and **Put** options (under FATGBM and GBM).
+    * **Barrier Options:** Pricing for **Up-and-Out Call** and **Up-and-Out Put** options (under FATGBM and GBM).
 4.  **Reproduction Scripts:** Code to reproduce the figures and tables presented in the paper.
-
 ## Repository Structure
 
 ### Core Models
 * `RGamma_supOU_s.R`: Implementation of the supOU process with inverse gamma marginals used for activity time modeling.
-* `FATGBM.R`: Implementation of the FATGBM model and option pricing functions.
-
+* `FATGBM.R`: Implementation of the FATGBM model and pricing functions for Standard European (Call/Put) and Up-and-Out Barrier (Call/Put) options.
+  
 ### Figures (Reproduction)
 The following scripts generate the figures found in the manuscript:
 * `fig123.R`: Generates Figures 1, 2, and 3.
