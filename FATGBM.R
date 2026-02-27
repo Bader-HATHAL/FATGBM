@@ -214,8 +214,52 @@ FATUpOutCall_subf <- function(t, Y, S0, K, B, sigma, r) {
   price <- term1 - term2 - term3 + term4
   return(price)
 }
+# Internal helper: FATGBM Barrier Call (Down-and-Out) (K => B)
+FATDownOutCall_subf_KaB1 = function(t, Y, S0, K, B, sigma, r)
+{
+  b <- 1 / sigma * (log(B / S0))
+  k <- 1 / sigma * (log(K / S0))
+  rys <- r * Y / sigma
+  ybr <- 2 * Y * b * r / (t * sigma)
+  
+  d1 = function(t, sigma, rys, k)  (rys+sigma * t /2 - k) / (sqrt(t)) 
+  d2 = function(t, sigma, rys, k, b) (rys+sigma * t/2 + 2*b - k) / (sqrt(t)) 
+  d3 = function(t, sigma, rys, k)  (rys-sigma * t /2 - k) / (sqrt(t)) 
+  d4 = function(t, sigma, rys, k, b)  (rys-sigma * t/2 + 2*b - k) / (sqrt(t)) 
+  term1 = S0 * exp(r * Y) * pnorm(d1(t, sigma, rys, k))
+  term2 = S0 * exp(r * Y) * exp(b * sigma + ybr) * pnorm(d2(t, sigma, rys, k, b))
+  term3 = K * pnorm(d3(t, sigma, rys, k))
+  term4 = K * exp(-b * sigma + ybr) * pnorm(d4(t, sigma, rys, k, b))
+  term2[is.na(term2)]=0
+  term4[is.na(term4)]=0
+  
+  price = term1 - term2- term3 + term4
+  return(price)
+}
+# Internal helper: FATGBM Barrier Call (Down-and-Out) (K <= B)
+FATDownOutCall_subf_BaK1 = function(t, Y, S0, K, B, sigma, r)
+{
+  b <- 1 / sigma * (log(B / S0))
+  rys <- r * Y / sigma
+  ybr <- 2 * Y * b * r / (t * sigma)
+  
+  d1 = function(t, sigma, rys, b)  (rys+sigma * t /2 - b) / (sqrt(t)) 
+  d2 = function(t, sigma, rys,  b)  (rys+sigma * t/2 + b) / (sqrt(t)) 
+  d3 = function(t, sigma, rys, b)  (rys-sigma * t /2 - b) / (sqrt(t)) 
+  d4 = function(t, sigma, rys,  b)  (rys-sigma * t/2 + b) / (sqrt(t))
+  term1 = S0 * exp(r * Y) * pnorm(d1(t, sigma, rys, b))
+  term2 = S0 * exp(r * Y) * exp(b * sigma + ybr) * pnorm(d2(t, sigma, rys,  b))
+  term3 = K * pnorm(d3(t, sigma, rys, b))
+  term4 = K * exp(-b * sigma + ybr) * pnorm(d4(t, sigma, rys,  b))
+  
+  
+  term2[is.na(term2)]=0
+  term4[is.na(term4)]=0
+  price = term1 - term2 - term3 + term4
+  return(price)
+}
 
-#' Price a FATGBM Barrier Call Option (Up-and-Out)
+#' Price a FATGBM Barrier Call Option (Up-and-Out) and (Down-and-Out)
 #'
 #' @param Y Time to expiry (in years).
 #' @param S0 Initial stock price.
@@ -246,6 +290,23 @@ FATUpOutCall <- function(Y, S0, K, B, sigma, r, dTYprm, echo = FALSE) {
   return(price)
 }
 
+FATDownOutcall <- function(Y, S0, K, B, sigma, r, dTYprm, echo = FALSE) {
+  # Standard check: if current price is below barrier, option is worthless 
+  if (S0 < B) return(0)
+  integrandc <- function(t, dTYprm) {
+    density <- dexGAUS(t, dTYprm[1], dTYprm[2], dTYprm[3])
+    if (K => B) {
+      cbbc_price <- FATDownOutCall_subf_KaB1(t, Y, S0, K, B, sigma, r)
+  } else {
+      cbbc_price <- FATDownOutCall_subf_BaK1(t, Y, S0, K, B, sigma, r)
+  }
+    density * cbbc_price
+  }
+  res <- integrate(integrandc, lower = 0, upper = Inf, dTYprm = dTYprm)
+  price <- res$value
+  if (echo) message("FATGBM Barrier Down Call Option Price: ", round(price, 4))
+  return(price)
+}
 #' Price a GBM Barrier Call Option (Up-and-Out)
 #'
 #' @param S0 Initial stock price.
@@ -377,6 +438,33 @@ FATUpOutPut_subf_KaB <- function(t, Y, S0, K, B, sigma, r) {
   return(price)
 }
 
+#Internal helper: FATGBM Barrier Put (Down-and-Out) (K => B)
+FATDownOutCall_subf = function(t, Y, S0, K, B, sigma, r)
+{
+  b <- 1 / sigma * (log(B / S0))
+  k <- 1 / sigma * (log(K / S0))
+  rys <- r * Y / sigma
+  ybr <- 2 * Y * b * r / (t * sigma)
+  
+  d1 = function(t, sigma, rys, k) { (rys-sigma * t /2 - k) / (sqrt(t)) }
+  d2 = function(t, sigma, rys, b) { (rys-sigma * t /2 - b) / (sqrt(t)) }
+  d3 = function(t, sigma, rys, k, b) { (rys-sigma * t/2 + 2*b - k) / (sqrt(t)) }
+  d4 = function(t, sigma, rys, b) { (rys-sigma * t /2 + b) / (sqrt(t)) }
+  d5 = function(t, sigma, rys, k) { (rys+sigma * t /2 - k) / (sqrt(t)) }
+  d6 = function(t, sigma, rys, b) { (rys+sigma * t /2 - b) / (sqrt(t)) }
+  d7 = function(t, sigma, rys, k, b) { (rys+sigma * t/2 + 2*b - k) / (sqrt(t)) }
+  d8 = function(t, sigma, rys, b) { (rys+sigma * t /2 + b) / (sqrt(t)) }
+  term1 = K * (pnorm (-d1(t, sigma, rys, k)) - pnorm(-d2(t, sigma, rys, b)))
+  term2 = K * exp(-b * sigma+ybr) * (pnorm(d3(t, sigma, rys, k, b)) - pnorm (d4(t, sigma, rys, b)))
+  term3 = S0 * exp(r*Y) * (pnorm (-d5(t, sigma, rys, k)) - pnorm(-d6(t, sigma, rys, b)))
+  term4 = S0 * exp(r*Y) * exp(b*sigma+ybr) * (pnorm(d7(t, sigma, rys, k, b)) - pnorm (d8(t, sigma, rys, b)))
+  term2[is.na(term2)]=0
+  term4[is.na(term4)]=0
+  
+  price = term1 + term2 - term3 - term4
+  return(price)
+}
+
 #' Price a FATGBM Barrier Put Option (Up-and-Out)
 #'
 #' @param Y Time to expiry (in years).
@@ -405,6 +493,23 @@ FATUpOutPut <- function(Y, S0, K, B, sigma, r, dTYprm, echo = FALSE) {
   res <- integrate(integrandc, lower = 0, upper = Inf, dTYprm = dTYprm)
   price <- res$value
   if (echo) message("FATGBM Barrier Put Option Price: ", round(price, 4))
+  return(price)
+}
+FATDownOutPut <- function(Y, S0, K, B, sigma, r, dTYprm, echo = FALSE) {
+# Standard check: if current price is below barrier, option is worthless
+  if (S0 < B)
+  if (B > K){
+    # warning ("FATDownOutPut formula is only implemented for B <=K. Returning 0.")
+    return(0)
+  }
+    integrandc <- function(t, dTYprm) {
+    density <- dexGAUS(t, dTYprm[1], dTYprm[2], dTYprm[3])
+    cbbc_price <- FATDownOutCall_subf(t, Y, S0, K, B, sigma, r)
+    density * cbbc_price
+  }
+  res <- integrate(integrandc, lower = 0, upper = Inf, dTYprm = dTYprm)
+  price <- res$value
+  if (echo) message("FATGBM Barrier Down Put Option Price: ", round(price, 4))
   return(price)
 }
 
