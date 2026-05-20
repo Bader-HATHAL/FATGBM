@@ -25,7 +25,7 @@ source("RGamma_OU.R")
 simulate_FATGBM <- function(S0, r, sigma, Y, n, a, b, lambdaEps, Delt){
   dt <- Y / n  
   t <- seq(0, Y, by = dt) 
-  ou <- Rg.OU(lambdaEps=lambdaEps,A=A,dt=dt,Y=Y,T_min=-1)
+  ou <- Rg.OU(lambdaEps = lambdaEps, A = A, dt = dt, Y = Y, T_min=-1)
   Tt <- cumsum(dt * ou$X)
   dW <- rnorm(n, mean = 0, sd = sigma * sqrt(dt * ou$X))
   W <- c(0,cumsum(dW))
@@ -52,7 +52,7 @@ set.seed(seedn)
 dt <- 1 / DaysInYear
 ty <- rep(0, m)
 for (j in (1:m)) {
-  ou=Rg.OU(lambdaEps=lambdaEps, lambda=lambda, dt=dt, Y=Y, T_min=-1)
+  ou=Rg.OU(lambdaEps = lambdaEps, lambda = lambda, dt =d t, Y = Y, T_min=-1)
   ou$Y[1] <- 0
   Tt <- cumsum(dt * ou$X) # Fractal activity time
   ty[j] <- Tt[length(Tt)] # T_Y
