@@ -23,13 +23,13 @@ source("RGamma_OU.R")
 #' @return A list containing the simulated path `St` and the `ou` process.
 #' @export
 simulate_FATGBM <- function(S0, r, sigma, Y, n, a, b, lambdaEps, Delt){
-  dt = Y / n  
-  t = seq(0, Y, by = dt) 
-  ou=Rg.OU(lambdaEps=lambdaEps,A=A,dt=dt,Y=Y,T_min=-1)
-  Tt = cumsum(dt * ou$X)
-  dW = rnorm(n, mean = 0, sd = sigma * sqrt(dt * ou$X))
-  W = c(0,cumsum(dW))
-  St = S0 * exp(r * ou*t - (sigma^2 / 2) * Tt + W)
+  dt <- Y / n  
+  t <- seq(0, Y, by = dt) 
+  ou <- Rg.OU(lambdaEps=lambdaEps,A=A,dt=dt,Y=Y,T_min=-1)
+  Tt <- cumsum(dt * ou$X)
+  dW <- rnorm(n, mean = 0, sd = sigma * sqrt(dt * ou$X))
+  W <- c(0,cumsum(dW))
+  St <- S0 * exp(r * ou*t - (sigma^2 / 2) * Tt + W)
   return(list(St = St, ou = u))
 }
 #' Get the Distribution of T_Y
