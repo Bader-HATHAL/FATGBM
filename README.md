@@ -1,29 +1,36 @@
 # FATGBM: Fractal Activity Time Geometric Brownian Motion
 
-This repository contains the R implementation of the **FATGBM model** and option pricing methods presented in the following research papers and a PhD thesis:
+This repository contains the R implementation of the **FATGBM model** and the option pricing methods presented in the following research papers and PhD thesis:
 
-> **A risky asset Student model with long-range dependence through fractal activity time** > *Authors: Nikolai N. Leonenko, Andrey Pepelyshev and Bader Saidan*
-> **Exotic options in  fractal activity time models with the Student distribution of log-returns** *Authors: Nikolai N. Leonenko, Andrey Pepelyshev and Bader Saidan*
-> **Fractal Activity Time Risky Asset Models with Dependence and Heavy-Tailed Distributions** *Author: Bader Saidan*
+> 1. **A risky asset Student model with long-range dependence through fractal activity time**
+>    *Authors: Nikolai N. Leonenko, Andrey Pepelyshev, and Bader Saidan*
+> 
+> 2. **Exotic options in fractal activity time models with the Student distribution of log-returns**
+>    *Authors: Nikolai N. Leonenko, Andrey Pepelyshev, and Bader Saidan*
+> 
+> 3. **Fractal Activity Time Risky Asset Models with Dependence and Heavy-Tailed Distributions** (PhD Thesis)
+>    *Author: Bader Saidan*
 
 ## Overview
 
-The **FATGBM** is a stochastic model that generalizes the classical Geometric Brownian Motion (GBM) by accommodating a number of properties that are not captured by Brownian motion but which are observed in financial data. These include dependence in absolute and squared returns (but not returns themselves) and a marginal distribution that is heavier-tailed and higher-peaked than Gaussian.
+The **FATGBM** is a stochastic model that generalizes the classical Geometric Brownian Motion (GBM) by accommodating a number of properties that are not captured by standard Brownian motion but are frequently observed in empirical financial data. These include dependence in absolute and squared returns (but not the returns themselves) and a marginal distribution that is heavier-tailed and higher-peaked than Gaussian.
 
 This repository provides:
-1.  **Stochastic Process Simulation:** Algorithms to simulate both the **Ornstein-Uhlenbeck (OU)** type process and the **superposition of Ornstein-Uhlenbeck (supOU)** process with inverse gamma marginals. This algorithm is used to simulate the fractal activity time with two different constructions: specifically, short-range dependence (OU-type) and long-range dependence (supOU).
-2.  **FATGBM Model:** Core functions to simulate the Fractal Activity Time Geometric Brownian Motion process.
-3.  **Option Pricing:** Numerical pricing methods implemented for the following contract types:
+
+1. **Stochastic Process Simulation:** Algorithms to simulate both the **Ornstein-Uhlenbeck (OU)** type process and the **superposition of Ornstein-Uhlenbeck (supOU)** process with inverse gamma marginals. This algorithm is used to simulate the fractal activity time using two different constructions: specifically, short-range dependence (OU-type) and long-range dependence (supOU).
+2. **FATGBM Model:** Core functions to simulate the Fractal Activity Time Geometric Brownian Motion process.
+3. **Option Pricing:** Numerical pricing methods implemented for the following contract types:
     * **Standard European Options:** Pricing for both **Call** and **Put** options (under FATGBM and GBM).
     * **Barrier Options:** Pricing for **Up-and-Out Call** and **Down-and-Out Put** options (under FATGBM and GBM).
-4.  **Reproduction Scripts:** Code to reproduce the figures and tables presented in research papers and a PhD thesis.
+4. **Reproduction Scripts:** Code to reproduce the figures and tables presented in the associated research papers and thesis.
+
 ## Repository Structure
 
 ### Core Models
 * `RGamma_supOU_s.R`: Implementation of the supOU process with inverse gamma marginals used for activity time modeling.
-* `FATGBM.R`: Implementation of the FATGBM model with long-range dependnece structure and pricing functions for Standard European (Call/Put) and Up-and-Out and Down-and-Out Barrier (Call/Put) options.
-* `RGamma_OU.R`: Implementation of the OU-typ process with inverse gamma marginals used for activity time modeling.
-* `FATGBM (SRD).R`: Implementation of the FATGBM model with short-range dependnece structure and pricing functions for Standard European (Call/Put) and Up-and-Out and Down-and-Out Barrier (Call/Put) options.
+* `FATGBM.R`: Implementation of the FATGBM model with a long-range dependence structure and pricing functions for Standard European (Call/Put) and Up-and-Out and Down-and-Out Barrier (Call/Put) options.
+* `RGamma_OU.R`: Implementation of the OU-type process with inverse gamma marginals used for activity time modeling.
+* `FATGBM (SRD).R`: Implementation of the FATGBM model with a short-range dependence structure and pricing functions for Standard European (Call/Put) and Up-and-Out and Down-and-Out Barrier (Call/Put) options.
   
 ### Figures (Reproduction)
 The following scripts generate the figures found in the first paper:
@@ -39,8 +46,8 @@ The following scripts generate the tables found in the first paper:
 
 ## Prerequisites
 
-To run these scripts, you need **R** installed.
-You also need the following R packages (install via `install.packages("package_name")`):
+To run these scripts, you must have **R** installed. 
+You also require the following R packages, which can be installed via `install.packages("package_name")`:
 
 * `gamlss`
 * `gamlss.dist`
@@ -53,7 +60,7 @@ You also need the following R packages (install via `install.packages("package_n
 ## Usage
 
 ### 1. Simulating the Model
-To use the core functions, ensure you source the supOU script first, as the FATGBM model depends on it:
+To use the core functions, ensure you source the dependent scripts first. The FATGBM models depend on the respective activity time models:
 
 ```r
 source("RGamma_supOU_s.R")
