@@ -1,34 +1,39 @@
 # FATGBM: Fractal Activity Time Geometric Brownian Motion
 
-This repository contains the R implementation of the **FATGBM model** and option pricing methods presented in the research paper:
+This repository contains the R implementation of the **FATGBM model** and option pricing methods presented in the following research papers and a PhD thesis:
 
 > **A risky asset Student model with long-range dependence through fractal activity time** > *Authors: Nikolai N. Leonenko, Andrey Pepelyshev and Bader Saidan*
+> **Exotic options in  fractal activity time models with the Student distribution of log-returns** *Authors: Nikolai N. Leonenko, Andrey Pepelyshev and Bader Saidan*
+> **Fractal Activity Time Risky Asset Models with Dependence and Heavy-Tailed Distributions** *Author: Bader Saidan*
 
 ## Overview
 
 The **FATGBM** is a stochastic model that generalizes the classical Geometric Brownian Motion (GBM) by accommodating a number of properties that are not captured by Brownian motion but which are observed in financial data. These include dependence in absolute and squared returns (but not returns themselves) and a marginal distribution that is heavier-tailed and higher-peaked than Gaussian.
 
 This repository provides:
-1.  **Stochastic Process Simulation:** Algorithms to simulate the **superposition of Ornstein-Uhlenbeck (supOU)** process with inverse gamma marginals. This algorithm is used to simulate the fractal activity time.
+1.  **Stochastic Process Simulation:** Algorithms to simulate both the **Ornstein-Uhlenbeck (OU)** type process and the **superposition of Ornstein-Uhlenbeck (supOU)** process with inverse gamma marginals. This algorithm is used to simulate the fractal activity time with two different constructions: specifically, short-range dependence (OU-type) and long-range dependence (supOU).
 2.  **FATGBM Model:** Core functions to simulate the Fractal Activity Time Geometric Brownian Motion process.
 3.  **Option Pricing:** Numerical pricing methods implemented for the following contract types:
     * **Standard European Options:** Pricing for both **Call** and **Put** options (under FATGBM and GBM).
-    * **Barrier Options:** Pricing for **Up-and-Out Call** and **Up-and-Out Put** options (under FATGBM and GBM).
-4.  **Reproduction Scripts:** Code to reproduce the figures and tables presented in the paper.
+    * **Barrier Options:** Pricing for **Up-and-Out Call** and **Down-and-Out Put** options (under FATGBM and GBM).
+4.  **Reproduction Scripts:** Code to reproduce the figures and tables presented in research papers and a PhD thesis.
 ## Repository Structure
 
 ### Core Models
 * `RGamma_supOU_s.R`: Implementation of the supOU process with inverse gamma marginals used for activity time modeling.
-* `FATGBM.R`: Implementation of the FATGBM model and pricing functions for Standard European (Call/Put) and Up-and-Out Barrier (Call/Put) options.
+* `FATGBM.R`: Implementation of the FATGBM model with long-range dependnece structure and pricing functions for Standard European (Call/Put) and Up-and-Out and Down-and-Out Barrier (Call/Put) options.
+* `RGamma_OU.R`: Implementation of the OU-typ process with inverse gamma marginals used for activity time modeling.
+* `FATGBM (SRD).R`: Implementation of the FATGBM model with short-range dependnece structure and pricing functions for Standard European (Call/Put) and Up-and-Out and Down-and-Out Barrier (Call/Put) options.
   
 ### Figures (Reproduction)
-The following scripts generate the figures found in the manuscript:
+The following scripts generate the figures found in the first paper:
 * `fig123.R`: Generates Figures 1, 2, and 3.
 * `fig5.R` - `fig7.R`: Generates Figures 5 through 7.
 * `fig8-9.R`: Generates Figures 8 and 9.
 * `fig10.R` & `fig11.R`: Generates Figures 10 and 11.
 
 ### Tables (Pricing & Analysis)
+The following scripts generate the tables found in the first paper:
 * `table2.R`: Code to reproduce Table 2 (Parameter estimation/comparison).
 * `table3pricing.R`: Code to reproduce Table 3 (Option pricing comparison).
 
@@ -53,4 +58,5 @@ To use the core functions, ensure you source the supOU script first, as the FATG
 ```r
 source("RGamma_supOU_s.R")
 source("FATGBM.R")
-
+source("RGamma_OU.R")
+source("FATGBM (SRD).R")
