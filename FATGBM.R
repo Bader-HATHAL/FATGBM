@@ -40,7 +40,7 @@ simulate_FATGBM <- function(S0, r, sigma, Y, dt, InvFeVector, piMeasure) {
 #' @param Y Total calendar time (in years).
 #' @param dt Time step (e.g., 1/252).
 #' @param lambdaEps Jump intensity parameter for the OU process.
-#' @param A Constant mean reversion/decay parameter for SRD.
+#' @param A Mean reversion/decay parameter.
 #' @param invCdfArray The precomputed lookup table for jump sizes.
 #'
 #' @return A list containing the simulated path `St` and the `ou` process.
@@ -61,7 +61,7 @@ simulate_FATGBM_SRD <- function(S0, r, sigma, Y, dt, lambdaEps, A, invCdfArray) 
   return(list(St = St, ou = ou))
 }
 
-#' Get the Distribution of T_Y
+#' Get the Distribution of T_Y under LRD construction 
 #'
 #' Simulates the fractal activity time T_Y and fits an ex-Gaussian distribution.
 #'
@@ -97,6 +97,44 @@ getTY <- function(Y, InvFeVector, piMeasure, m = 500,
   ee <- dexGAUS(xx, hh$mu, hh$sigma, hh$nu)
   lines(xx, ee, type = "l", col = "blue", lwd = 3)
   return(list(TY = ty, h = hh, prm = est))
+}
+
+#' Get the Distribution of T_Y under SRD construction 
+#'
+#' Simulates the fractal activity time T_Y and fits a skewed normal distribution.
+#'
+#' @param Y Time to expiry (in years).
+#' @param lambdaEps Jump intensity parameter.
+#' @param lambda The mean reversion rate (decay parameter).
+#' @param m Number of simulations.
+#' @param DaysInYear Trading days in a year.
+#' @param seedn Random seed for reproducibility.
+#'
+#' @return A list containing simulated T_Y values, the histogram object, and
+#'         the estimated skewed normal parameters.
+#' @export
+#' 
+getTY_SRD <- function(Y, lambdaEps, lambda, m = 500, DaysInYear = 252, seedn = 127){
+set.seed(seedn)
+dt <- 1 / DaysInYear
+ty <- rep(0, m)
+for (j in (1:m)) {
+  ou=Rg.OU(lambdaEps = lambdaEps, lambda = lambda, dt =dt, Y = Y, T_min=-1)
+  ou$Y[1] <- 0
+  Tt <- cumsum(dt * ou$X) # Fractal activity time
+  ty[j] <- Tt[length(Tt)] # T_Y
+}
+# Fit skewed normal distribution to T_Y and plot the fit
+hh <- histDist(ty, "SN2", nbins = 70) 
+est <- c(round(hh$mu, 2), round(hh$sigma, 3), round(hh$nu, 2))
+s1 <- paste0('nu=',nu, 'lambda',lambda)
+s2 <- paste('SN(', est[1], ',', est[2], ',', est[3], ')', sep = "")
+print(paste(s1, s2))
+mtext(s1, side = 3, line = -1)
+xx <- seq(0, 2, by = 0.01)
+ee <- dSN2(xx, hh$mu, hh$sigma, hh$nu)
+lines(xx, ee, type = "l", col = "blue", lwd = 3)
+return(list(TY = ty, h = hh, prm = est))
 }
 
 #' Monte Carlo Simulation for Barrier Options using FATGBM Model
