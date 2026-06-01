@@ -2,9 +2,9 @@
 # NOTE: 'gamlss' and 'gamlss.dist' are required for histDist and dexGAUS
 library(gamlss)
 library(gamlss.dist) 
-# NOTE: the package that provides 'r_supOU'
+# NOTE: the package that provides long range dependence (LRD) supOU and short range dependnece (SRD) OU
 source("RGamma_supOU_s.R") 
-
+source("RGamma_OU.R")
 
 ##################################################################
 # Section 1: FATGBM Simulation
@@ -29,6 +29,35 @@ simulate_FATGBM <- function(S0, r, sigma, Y, dt, InvFeVector, piMeasure) {
   dW <- rnorm(length(Tt), mean = 0, sd = sigma * sqrt(dt * ou$Y))
   W <- cumsum(dW)
   St <- S0 * exp(r * ou$t - (sigma^2 / 2) * Tt + W)
+  return(list(St = St, ou = ou))
+}
+
+#' Simulate a FATGBM Path under Short-Range Dependence (SRD)
+#'
+#' @param S0 Initial stock price.
+#' @param r Risk-free interest rate.
+#' @param sigma Volatility.
+#' @param Y Total calendar time (in years).
+#' @param dt Time step (e.g., 1/252).
+#' @param lambdaEps Jump intensity parameter for the OU process.
+#' @param A Constant mean reversion/decay parameter for SRD.
+#' @param invCdfArray The precomputed lookup table for jump sizes.
+#'
+#' @return A list containing the simulated path `St` and the `ou` process.
+#' @export
+simulate_FATGBM_SRD <- function(S0, r, sigma, Y, dt, lambdaEps, A, invCdfArray) {
+  # Call the fast shot-noise OU simulation (from your RGamma_OU.R script)
+  # Note: You will need a suitable T_min (warm-up) passed or hardcoded
+  ou <- Rg.OU(lambdaEps = lambdaEps, A = A, dt = dt, Y = Y, T_min = -1) 
+  
+  ou$X[1] <- 0
+  Tt <- cumsum(dt * ou$X)
+  
+  # Standard FATGBM construction
+  dW <- rnorm(length(Tt), mean = 0, sd = sigma * sqrt(dt * ou$X))
+  W <- cumsum(dW)
+  St <- S0 * exp(r * ou$t - (sigma^2 / 2) * Tt + W)
+  
   return(list(St = St, ou = ou))
 }
 
