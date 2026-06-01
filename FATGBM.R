@@ -105,7 +105,7 @@ getTY <- function(Y, InvFeVector, piMeasure, m = 500,
 #'
 #' @param Y Time to expiry (in years).
 #' @param lambdaEps Jump intensity parameter.
-#' @param lambda The mean reversion rate (decay parameter).
+#' @param A Mean reversion/decay parameter.
 #' @param m Number of simulations.
 #' @param DaysInYear Trading days in a year.
 #' @param seedn Random seed for reproducibility.
@@ -113,30 +113,33 @@ getTY <- function(Y, InvFeVector, piMeasure, m = 500,
 #' @return A list containing simulated T_Y values, the histogram object, and
 #'         the estimated skewed normal parameters.
 #' @export
-#' 
-getTY_SRD <- function(Y, lambdaEps, lambda, m = 500, DaysInYear = 252, seedn = 127){
-set.seed(seedn)
-dt <- 1 / DaysInYear
-ty <- rep(0, m)
-for (j in (1:m)) {
-  ou=Rg.OU(lambdaEps = lambdaEps, lambda = lambda, dt =dt, Y = Y, T_min=-1)
-  ou$Y[1] <- 0
-  Tt <- cumsum(dt * ou$X) # Fractal activity time
-  ty[j] <- Tt[length(Tt)] # T_Y
+getTY_SRD <- function(Y, lambdaEps, A, invCdfArray, m = 500, DaysInYear = 252, seedn = 127) {
+  set.seed(seedn)
+  dt <- 1 / DaysInYear
+  ty <- rep(0, m)
+  for (j in 1:m) {
+    # Using 'A' to match your Rg.OU definition
+    ou <- Rg.OU(lambdaEps = lambdaEps, A = A, dt = dt, Y = Y, T_min = -1)
+    ou$X[1] <- 0
+    Tt <- cumsum(dt * ou$X) # Fractional activity time
+    ty[j] <- Tt[length(Tt)] # T_Y
+  }
+  
+  # Fit skewed normal distribution to T_Y and plot the fit
+  hh <- histDist(ty, "SN2", nbins = 70) 
+  est <- c(round(hh$mu, 2), round(hh$sigma, 3), round(hh$nu, 2))
+  
+  s1 <- paste0('A=', A, ' lambdaEps=', lambdaEps)
+  s2 <- paste('SN2(', est[1], ',', est[2], ',', est[3], ')', sep = "")
+  print(paste(s1, s2))
+  mtext(s1, side = 3, line = -1)
+  
+  xx <- seq(0, max(ty)*1.2, by = 0.01)
+  ee <- dSN2(xx, hh$mu, hh$sigma, hh$nu)
+  lines(xx, ee, type = "l", col = "blue", lwd = 3)
+  
+  return(list(TY = ty, h = hh, prm = est))
 }
-# Fit skewed normal distribution to T_Y and plot the fit
-hh <- histDist(ty, "SN2", nbins = 70) 
-est <- c(round(hh$mu, 2), round(hh$sigma, 3), round(hh$nu, 2))
-s1 <- paste0('nu=',nu, 'lambda',lambda)
-s2 <- paste('SN(', est[1], ',', est[2], ',', est[3], ')', sep = "")
-print(paste(s1, s2))
-mtext(s1, side = 3, line = -1)
-xx <- seq(0, 2, by = 0.01)
-ee <- dSN2(xx, hh$mu, hh$sigma, hh$nu)
-lines(xx, ee, type = "l", col = "blue", lwd = 3)
-return(list(TY = ty, h = hh, prm = est))
-}
-
 #' Monte Carlo Simulation for Barrier Options using FATGBM Model
 #'
 #' Simulates barrier options (Up-and-Out Call and Put) prices using the FATGBM model
@@ -334,6 +337,180 @@ simulate_DownAndOut_BarrierOption <- function(S0, K, B, r, sigma, Y, dt,
   
   # --- Output Messages ---
   message("\n--- Monte Carlo Simulation Results (FATGBM Down-and-Out Barrier) ---")
+  message("Parameters: K=", K, ", B=", B, ", S0=", S0, ", Y=", Y, ", r=", r, ", sigma=", sigma)
+  message(sprintf("Barrier Call Price = %.2f (SE = %.2f, %g%% CI: [%.2f, %.2f])", 
+                  call_price, call_se, conf_level * 100, call_ci_lower, call_ci_upper))
+  message(sprintf("Barrier Put Price  = %.2f (SE = %.2f, %g%% CI: [%.2f, %.2f])", 
+                  put_price, put_se, conf_level * 100, put_ci_lower, put_ci_upper))
+  
+  # --- Return Results ---
+  return(list(
+    CALL.m = call_price, CALL.SE = call_se, CALL.CI_lower = call_ci_lower, CALL.CI_upper = call_ci_upper,
+    PUT.m = put_price, PUT.SE = put_se, PUT.CI_lower = put_ci_lower, PUT.CI_upper = put_ci_upper
+  ))
+}
+
+#' Monte Carlo Simulation for Barrier Options (Up-and-Out) using FATGBM Model (SRD)
+#'
+#' @param S0 Initial stock price.
+#' @param K Strike price.
+#' @param B Barrier price (Down-and-Out).
+#' @param r Risk-free interest rate.
+#' @param sigma Volatility.
+#' @param Y Time to expiry (in years).
+#' @param dt Time step (e.g., 1/252 for daily steps).
+#' @param lambdaEps Jump intensity parameter (SRD).
+#' @param A Mean reversion/decay parameter (SRD).
+#' @param invCdfArray The precomputed lookup table for jump sizes (SRD).
+#' @param m Number of Monte Carlo simulations.
+#' @param conf_level Confidence level for the interval (e.g., 0.95 for 95% CI).
+#' @param seed Random seed for reproducibility.
+#'
+#' @return A list containing estimated prices, standard errors, and confidence intervals.
+#' @export
+simulate_BarrierOption_SRD <- function(S0, K, B, r, sigma, Y, dt, 
+                                       lambdaEps, A, invCdfArray, # SRD specific inputs
+                                       m = 10000, conf_level = 0.95, seed = NULL) {
+  if (!is.null(seed)) { set.seed(seed) }
+  
+  if (S0 >= B) {
+    return(list(CALL.m = 0, CALL.SE = 0, CALL.CI_lower = 0, CALL.CI_upper = 0,
+                PUT.m = 0, PUT.SE = 0, PUT.CI_lower = 0, PUT.CI_upper = 0))
+  }
+  
+  discount_factor <- exp(-r * Y)
+  z_alpha <- qnorm(1 - (1 - conf_level) / 2)
+  call_payoffs <- numeric(m)
+  put_payoffs <- numeric(m)
+  
+  message("Starting Monte Carlo simulation for Barrier Options SRD (Up-and-Out)...")
+  pb <- txtProgressBar(min = 0, max = m, initial = 0, style = 3) 
+  
+  for (i in 1:m) {
+    # THE DIFFERENCE: Calling the SRD path generator
+    fatgbm <- simulate_FATGBM_SRD(S0, r, sigma, Y, dt, lambdaEps, A, invCdfArray)
+    spath <- fatgbm$St
+    
+    volsdt <- sigma * sqrt(dt)
+    barrier_breached <- (max(spath) * exp(0.583 * volsdt) >= B)
+    
+    if (!barrier_breached) {
+      final_price <- spath[length(spath)]
+      call_payoffs[i] <- pmax(final_price - K, 0)
+      put_payoffs[i] <- pmax(K - final_price, 0)
+    }
+    setTxtProgressBar(pb, i)
+  }
+  close(pb)
+  
+  # Statistics computation remains identical to LRD
+  mean_call_payoff <- mean(call_payoffs)
+  sd_call_payoff <- sd(call_payoffs)
+  call_price <- discount_factor * mean_call_payoff
+  call_se <- discount_factor * sd_call_payoff / sqrt(m) 
+  call_ci_lower <- call_price - z_alpha * call_se
+  call_ci_upper <- call_price + z_alpha * call_se
+  
+  mean_put_payoff <- mean(put_payoffs)
+  sd_put_payoff <- sd(put_payoffs)
+  put_price <- discount_factor * mean_put_payoff
+  put_se <- discount_factor * sd_put_payoff / sqrt(m) 
+  put_ci_lower <- put_price - z_alpha * put_se
+  put_ci_upper <- put_price + z_alpha * put_se
+  
+  return(list(
+    CALL.m = call_price, CALL.SE = call_se, CALL.CI_lower = call_ci_lower, CALL.CI_upper = call_ci_upper,
+    PUT.m = put_price, PUT.SE = put_se, PUT.CI_lower = put_ci_lower, PUT.CI_upper = put_ci_upper
+  ))
+} 
+
+#' Monte Carlo Simulation for Barrier Options (Down-and-Out) using FATGBM Model (SRD)
+#'
+#' @param S0 Initial stock price.
+#' @param K Strike price.
+#' @param B Barrier price (Down-and-Out).
+#' @param r Risk-free interest rate.
+#' @param sigma Volatility.
+#' @param Y Time to expiry (in years).
+#' @param dt Time step (e.g., 1/252 for daily steps).
+#' @param lambdaEps Jump intensity parameter (SRD).
+#' @param A Mean reversion/decay parameter (SRD).
+#' @param invCdfArray The precomputed lookup table for jump sizes (SRD).
+#' @param m Number of Monte Carlo simulations.
+#' @param conf_level Confidence level for the interval (e.g., 0.95 for 95% CI).
+#' @param seed Random seed for reproducibility.
+#'
+#' @return A list containing estimated prices, standard errors, and confidence intervals.
+#' @export
+simulate_DownAndOut_BarrierOption_SRD <- function(S0, K, B, r, sigma, Y, dt, 
+                                                  lambdaEps, A, invCdfArray, 
+                                                  m = 10000, 
+                                                  conf_level = 0.95, 
+                                                  seed = NULL) {
+  if (!is.null(seed)) { set.seed(seed) }
+  
+  # --- Initial Checks ---
+  # Down-and-Out: if S0 is <= B, it is instantly knocked out.
+  if (S0 <= B) {
+    message("Warning: Initial stock price S0 (", S0, ") is already at or below barrier B (", B, ").")
+    message("Returning 0 for barrier option prices as the option is immediately knocked out.")
+    return(list(
+      CALL.m = 0, CALL.SE = 0, CALL.CI_lower = 0, CALL.CI_upper = 0,
+      PUT.m = 0, PUT.SE = 0, PUT.CI_lower = 0, PUT.CI_upper = 0
+    ))
+  }
+  
+  # --- Pre-calculations ---
+  discount_factor <- exp(-r * Y)
+  z_alpha <- qnorm(1 - (1 - conf_level) / 2)
+  
+  call_payoffs <- numeric(m)
+  put_payoffs <- numeric(m)
+  
+  # --- Monte Carlo Loop ---
+  message("Starting Monte Carlo simulation for Barrier Options SRD (Down-and-Out)...")
+  pb <- txtProgressBar(min = 0, max = m, initial = 0, style = 3) 
+  
+  for (i in 1:m) {
+    # CALLING THE SRD ENGINE
+    fatgbm <- simulate_FATGBM_SRD(S0, r, sigma, Y, dt, lambdaEps, A, invCdfArray)
+    spath <- fatgbm$St
+    
+    volsdt <- sigma * sqrt(dt)
+    
+    # THE CONTINUITY CORRECTION FOR DOWN-AND-OUT
+    # Using min(spath) and a negative exponential shift for the Siegmund correction.
+    barrier_breached <- (min(spath) * exp(-0.583 * volsdt) <= B)
+    
+    if (!barrier_breached) {
+      final_price <- spath[length(spath)]
+      call_payoffs[i] <- pmax(final_price - K, 0)
+      put_payoffs[i] <- pmax(K - final_price, 0)
+    }
+    
+    setTxtProgressBar(pb, i)
+  }
+  close(pb)
+  
+  # --- Calculate Statistics ---
+  # Call Option
+  mean_call_payoff <- mean(call_payoffs)
+  sd_call_payoff <- sd(call_payoffs)
+  call_price <- discount_factor * mean_call_payoff
+  call_se <- discount_factor * sd_call_payoff / sqrt(m) 
+  call_ci_lower <- call_price - z_alpha * call_se
+  call_ci_upper <- call_price + z_alpha * call_se
+  
+  # Put Option
+  mean_put_payoff <- mean(put_payoffs)
+  sd_put_payoff <- sd(put_payoffs)
+  put_price <- discount_factor * mean_put_payoff
+  put_se <- discount_factor * sd_put_payoff / sqrt(m) 
+  put_ci_lower <- put_price - z_alpha * put_se
+  put_ci_upper <- put_price + z_alpha * put_se
+  
+  # --- Output Messages ---
+  message("\n--- Monte Carlo Simulation Results (FATGBM SRD Down-and-Out) ---")
   message("Parameters: K=", K, ", B=", B, ", S0=", S0, ", Y=", Y, ", r=", r, ", sigma=", sigma)
   message(sprintf("Barrier Call Price = %.2f (SE = %.2f, %g%% CI: [%.2f, %.2f])", 
                   call_price, call_se, conf_level * 100, call_ci_lower, call_ci_upper))
