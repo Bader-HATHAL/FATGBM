@@ -28,7 +28,7 @@ This repository provides:
 
 ### Core Models
 * `RGamma_supOU_s.R`: Implementation of the supOU process with inverse gamma marginals used for activity time modeling.
-* `FATGBM.R`: Implementation of the FATGBM model under both Long-Range Dependence (LRD) and Short-Range Dependence (SRD) frameworks. The script simulates the fractional activity time, $T_Y$, fitting it to an ex-Gaussian distribution for LRD and a Skew-Normal distribution for SRD. It also provides exact and Monte Carlo pricing functions for Standard European (Call/Put) and Barrier (Up-and-Out, Down-and-Out) options.
+* `FATGBM.R`: Implementation of the FATGBM model under both long-range dependence (LRD) and short-range dependence (SRD) frameworks. The script simulates the fractal activity time, $T_Y$, fitting it to an ex-Gaussian distribution for LRD and a Skew-Normal distribution for SRD. It also provides the theoretical price and Monte Carlo pricing functions for Standard European (Call/Put) and Barrier (Up-and-Out, Down-and-Out) options.
 * `RGamma_OU.R`: Implementation of the OU-type process with inverse gamma marginals used for activity time modeling.
   
 ### Figures (Reproduction)
