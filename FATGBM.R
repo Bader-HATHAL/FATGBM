@@ -179,6 +179,106 @@ simulate_BarrierOption <- function(S0, K, B, r, sigma, Y, dt,
     PUT.CI_upper = put_ci_upper
   ))
 }
+#' Monte Carlo Simulation for Barrier Options (Down-and-Out) using FATGBM Model
+#'
+#' Simulates barrier options (Down-and-Out Call and Put) prices using the FATGBM model
+#' via Monte Carlo.
+#'
+#' @param S0 Initial stock price.
+#' @param K Strike price.
+#' @param B Barrier price (Down-and-Out).
+#' @param r Risk-free interest rate.
+#' @param sigma Volatility.
+#' @param Y Time to expiry (in years).
+#' @param dt Time step (e.g., 1/252 for daily steps).
+#' @param InvFeVector Parameters for the subordinator's Lévy measure.
+#' @param piMeasure Parameters for the subordinator's Lévy measure.
+#' @param m Number of Monte Carlo simulations.
+#' @param conf_level Confidence level for the interval (e.g., 0.95 for 95% CI).
+#' @param seed Random seed for reproducibility.
+#'
+#' @return A list containing estimated prices, standard errors, and confidence intervals.
+#' @export
+simulate_DownAndOut_BarrierOption <- function(S0, K, B, r, sigma, Y, dt, 
+                                              InvFeVector, piMeasure, 
+                                              m = 10000, 
+                                              conf_level = 0.95, 
+                                              seed = NULL) {
+  if (!is.null(seed)) { set.seed(seed) }
+  
+  # --- Initial Checks ---
+  # MODIFICATION 1: For a Down-and-Out barrier, if S0 is <= B, it is instantly knocked out.
+  if (S0 <= B) {
+    message("Warning: Initial stock price S0 (", S0, ") is already at or below barrier B (", B, ").")
+    message("Returning 0 for barrier option prices as the option is immediately knocked out.")
+    return(list(
+      CALL.m = 0, CALL.SE = 0, CALL.CI_lower = 0, CALL.CI_upper = 0,
+      PUT.m = 0, PUT.SE = 0, PUT.CI_lower = 0, PUT.CI_upper = 0
+    ))
+  }
+  
+  # --- Pre-calculations ---
+  discount_factor <- exp(-r * Y)
+  z_alpha <- qnorm(1 - (1 - conf_level) / 2)
+  
+  call_payoffs <- numeric(m)
+  put_payoffs <- numeric(m)
+  
+  # --- Monte Carlo Loop ---
+  message("Starting Monte Carlo simulation for Barrier Options (Down-and-Out)...")
+  pb <- txtProgressBar(min = 0, max = m, initial = 0, style = 3) 
+  
+  for (i in 1:m) {
+    fatgbm <- simulate_FATGBM(S0, r, sigma, Y, dt, InvFeVector, piMeasure)
+    spath <- fatgbm$St
+    
+    volsdt <- sigma * sqrt(dt)
+    
+    # MODIFICATION 2 & 3: Check if the adjusted minimum drops below the lower barrier.
+    # We use min(spath) and a negative exponential shift for the Siegmund correction.
+    barrier_breached <- (min(spath) * exp(-0.583 * volsdt) <= B)
+    
+    if (!barrier_breached) {
+      final_price <- spath[length(spath)]
+      call_payoffs[i] <- pmax(final_price - K, 0)
+      put_payoffs[i] <- pmax(K - final_price, 0)
+    }
+    
+    setTxtProgressBar(pb, i)
+  }
+  close(pb)
+  
+  # --- Calculate Statistics ---
+  # Call Option
+  mean_call_payoff <- mean(call_payoffs)
+  sd_call_payoff <- sd(call_payoffs)
+  call_price <- discount_factor * mean_call_payoff
+  call_se <- discount_factor * sd_call_payoff / sqrt(m) 
+  call_ci_lower <- call_price - z_alpha * call_se
+  call_ci_upper <- call_price + z_alpha * call_se
+  
+  # Put Option
+  mean_put_payoff <- mean(put_payoffs)
+  sd_put_payoff <- sd(put_payoffs)
+  put_price <- discount_factor * mean_put_payoff
+  put_se <- discount_factor * sd_put_payoff / sqrt(m) 
+  put_ci_lower <- put_price - z_alpha * put_se
+  put_ci_upper <- put_price + z_alpha * put_se
+  
+  # --- Output Messages ---
+  message("\n--- Monte Carlo Simulation Results (FATGBM Down-and-Out Barrier) ---")
+  message("Parameters: K=", K, ", B=", B, ", S0=", S0, ", Y=", Y, ", r=", r, ", sigma=", sigma)
+  message(sprintf("Barrier Call Price = %.2f (SE = %.2f, %g%% CI: [%.2f, %.2f])", 
+                  call_price, call_se, conf_level * 100, call_ci_lower, call_ci_upper))
+  message(sprintf("Barrier Put Price  = %.2f (SE = %.2f, %g%% CI: [%.2f, %.2f])", 
+                  put_price, put_se, conf_level * 100, put_ci_lower, put_ci_upper))
+  
+  # --- Return Results ---
+  return(list(
+    CALL.m = call_price, CALL.SE = call_se, CALL.CI_lower = call_ci_lower, CALL.CI_upper = call_ci_upper,
+    PUT.m = put_price, PUT.SE = put_se, PUT.CI_lower = put_ci_lower, PUT.CI_upper = put_ci_upper
+  ))
+}
 
 #####################################################################
 # Section 2: Call Option Pricing
