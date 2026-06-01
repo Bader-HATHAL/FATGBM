@@ -525,8 +525,34 @@ simulate_DownAndOut_BarrierOption_SRD <- function(S0, K, B, r, sigma, Y, dt,
 }
 
 #####################################################################
-# Section 2: Call Option Pricing
+# Section 2: Call Option Pricing 
 #####################################################################
+#' Helper: Retrieve Skew-Normal Parameters for SRD Pricing
+get_SN2_params <- function(a, lambda = 10) {
+  if (lambda == 10) {
+    pm <- rbind(
+      c(0.642, 0.246, 1.894), # a=2.5
+      c(0.702, 0.235, 1.751), # a=3.0
+      c(0.756, 0.223, 1.598), # a=3.5
+      c(0.785, 0.213, 1.516)  # a=4.0
+    )
+  } else if (lambda == 20) {
+    pm <- rbind(
+      c(0.762, 0.206, 1.511),
+      c(0.811, 0.191, 1.449),
+      c(0.843, 0.176, 1.368),
+      c(0.850, 0.164, 1.366)
+    )
+  } else {
+    stop("Parameters only calibrated for lambda = 10 or 20.")
+  }
+  
+  idx <- round(a * 2) - 4
+  if (idx < 1 || idx > nrow(pm)) {
+    stop("Parameter 'a' is out of bounds (requires a in [2.5, 4.0]).")
+  }
+  return(pm[idx, ])
+}
 
 # Internal helper function for FATUpOutCall
 # This is the integrand for the (K <= B) case
@@ -603,7 +629,7 @@ FATDownOutCall_subf_BaK1 = function(t, Y, S0, K, B, sigma, r)
   return(price)
 }
 
-#' Price a FATGBM Barrier Call Option (Up-and-Out) and (Down-and-Out)
+#' Price a FATGBM Barrier Call Option (Up-and-Out) and (Down-and-Out) LRD
 #'
 #' @param Y Time to expiry (in years).
 #' @param S0 Initial stock price.
@@ -651,6 +677,45 @@ FATDownOutcall <- function(Y, S0, K, B, sigma, r, dTYprm, echo = FALSE) {
   if (echo) message("FATGBM Barrier Down Call Option Price: ", round(price, 4))
   return(price)
 }
+#' Price a FATGBM Barrier Call Option (Up-and-Out) and (Down-and-Out) SRD
+#'
+#' SRD: Up-and-Out Barrier Call
+#' @export
+FATUpOutCall_SRD <- function(Y, S0, K, B, sigma, r, dTYprm, echo = FALSE) {
+  if (B < S0) return(0) 
+  if (K > B) return(0)
+  
+  integrandc <- function(t, dTYprm) {
+    density <- dSN2(t, dTYprm[1], dTYprm[2], dTYprm[3])
+    cbbc_price <- FATUpOutCall_subf(t, Y, S0, K, B, sigma, r)
+    return(density * cbbc_price)
+  }
+  
+  res <- integrate(integrandc, lower = 0, upper = Inf, dTYprm = dTYprm)
+  if (echo) message("FATGBM SRD Barrier Call (Up-Out) Price: ", round(res$value, 4))
+  return(res$value)
+}
+
+#' SRD: Down-and-Out Barrier Call
+#' @export
+FATDownOutCall_SRD <- function(Y, S0, K, B, sigma, r, dTYprm, echo = FALSE) {
+  if (S0 < B) return(0)
+  
+  integrandc <- function(t, dTYprm) {
+    density <- dSN2(t, dTYprm[1], dTYprm[2], dTYprm[3])
+    if (K >= B) {
+      cbbc_price <- FATDownOutCall_subf_KaB1(t, Y, S0, K, B, sigma, r)
+    } else {
+      cbbc_price <- FATDownOutCall_subf_BaK1(t, Y, S0, K, B, sigma, r)
+    }
+    return(density * cbbc_price)
+  }
+  
+  res <- integrate(integrandc, lower = 0, upper = Inf, dTYprm = dTYprm)
+  if (echo) message("FATGBM SRD Barrier Call (Down-Out) Price: ", round(res$value, 4))
+  return(res$value)
+}
+
 #' Price a GBM Barrier Call Option (Up-and-Out)
 #'
 #' @param S0 Initial stock price.
@@ -856,7 +921,43 @@ FATDownOutPut <- function(Y, S0, K, B, sigma, r, dTYprm, echo = FALSE) {
   if (echo) message("FATGBM Barrier Down Put Option Price: ", round(price, 4))
   return(price)
 }
+#' Price a FATGBM Barrier Put Option (Up-and-Out) and (Down-and-Out) SRD
+#'
+#' SRD: Up-and-Out Barrier Put
+#' @export
+FATUpOutPut_SRD <- function(Y, S0, K, B, sigma, r, dTYprm, echo = FALSE) {
+  if (B < S0) return(0)
+  
+  integrandc <- function(t, dTYprm) {
+    density <- dSN2(t, dTYprm[1], dTYprm[2], dTYprm[3])
+    if (K <= B) {
+      cbbc_price <- FATUpOutPut_subf_BaK(t, Y, S0, K, B, sigma, r)
+    } else {
+      cbbc_price <- FATUpOutPut_subf_KaB(t, Y, S0, K, B, sigma, r)
+    }
+    return(density * cbbc_price)
+  }
+  
+  res <- integrate(integrandc, lower = 0, upper = Inf, dTYprm = dTYprm)
+  if (echo) message("FATGBM SRD Barrier Put (Up-Out) Price: ", round(res$value, 4))
+  return(res$value)
+}
 
+#' SRD: Down-and-Out Barrier Put
+#' @export
+FATDownOutPut_SRD <- function(Y, S0, K, B, sigma, r, dTYprm, echo = FALSE) {
+  if (S0 < B || B > K) return(0)
+  
+  integrandc <- function(t, dTYprm) {
+    density <- dSN2(t, dTYprm[1], dTYprm[2], dTYprm[3])
+    cbbc_price <- FATDownOutPut_subf(t, Y, S0, K, B, sigma, r)
+    return(density * cbbc_price)
+  }
+  
+  res <- integrate(integrandc, lower = 0, upper = Inf, dTYprm = dTYprm)
+  if (echo) message("FATGBM SRD Barrier Put (Down-Out) Price: ", round(res$value, 4))
+  return(res$value)
+}
 #' Price a FATGBM Standard European Put Option
 #'
 #' @param Y Time to expiry (in years).
