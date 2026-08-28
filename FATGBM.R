@@ -45,19 +45,18 @@ simulate_FATGBM <- function(S0, r, sigma, Y, dt, InvFeVector, piMeasure) {
 #'
 #' @return A list containing the simulated path `St` and the `ou` process.
 #' @export
-simulate_FATGBM_SRD <- function( S0, r,sigma,Y, dt, lambdaEps, A, invCdfArray, T_min = -1) {
-
-  ou <- rReciprocalGammaOU_Fast( lambdaEps = lambdaEps, A = A, dt = dt, Y = Y, 
-         T_min = T_min, invCdfArray = invCdfArray)
-
-  ou$X[1] <- 0
-
-  Tt <- cumsum(dt * ou$X)
-  dW <- rnorm( length(Tt),mean = 0, sd = sigma * sqrt(dt * ou$X )
+simulate_FATGBM_SRD <- function(S0, r, sigma, Y, dt, lambdaEps, A, invCdfArray) {
+#Call the fast shot-noise OU simulation (from your RGamma_OU.R script)
+#Note: You will need a suitable T_min (warm-up) passed or hardcoded
+ou <- rReciprocalGammaOU_Fast(lambdaEps = lambdaEps, A = A, dt = dt, Y = Y, T_min = -1)
+ou$X[1] <- 0
+Tt <- cumsum(dt * ou$X)
+#Standard FATGBM construction
+dW <- rnorm(length(Tt), mean = 0, sd = sigma * sqrt(dt * ou$X))
 W <- cumsum(dW)
-St <- S0 * exp( r * ou$t - (sigma^2 / 2) * Tt + W)
-
-  return(list(St = St, ou = ou, Tt = Tt) )}
+St <- S0 * exp(r * ou$t - (sigma^2 / 2) * Tt + W)
+return(list(St = St, ou = ou))
+}
 
 #' Get the Distribution of T_Y under LRD construction 
 #'
@@ -111,47 +110,16 @@ getTY <- function(Y, InvFeVector, piMeasure, m = 500,
 #' @return A list containing simulated T_Y values, the histogram object, and
 #'         the estimated skewed normal parameters.
 #' @export
-getTY_SRD <- function(Y,lambdaEps,A, invCdfArray,m = 500, DaysInYear = 252, seedn = 127,
-                      T_min = -1) {
+getTY_SRD <- function(Y, lambdaEps, A, invCdfArray, m = 500, DaysInYear = 252, seedn = 127) {
 set.seed(seedn)
 dt <- 1 / DaysInYear
- ty <- numeric(m)
-
-  for (j in 1:m) { ou <- rReciprocalGammaOU_Fast( lambdaEps = lambdaEps,  A = A, dt = dt, Y = Y,
-      T_min = T_min,
-      invCdfArray = invCdfArray)
-     ou$X[1] <- 0
-Tt <- cumsum(dt * ou$X)
- ty[j] <- tail(Tt, 1) }
-
- # Fit SN2 approximation
-
-  hh <- histDist( ty, "SN2", nbins = 70)
-# Full precision: use these for pricing
-
-  prm <- c( hh$mu, hh$sigma,hh$nu)
-
-
-  # Rounded only for printing
-
-  est <- round(prm, 4)
-
-  cat(
-    "\nSN2 parameters:",
-    est[1],
-    est[2],
-    est[3],
-    "\n"
-  )
-
-
-  return(
-    list(
-      TY = ty,
-      h = hh,
-      prm = prm
-    )
-  )
+ty <- rep(0, m)
+for (j in 1:m) {
+# Using 'A' to match your Rg.OU definition
+ou <- rReciprocalGammaOU_Fast(lambdaEps = lambdaEps, A = A, dt = dt, Y = Y, T_min = -1)
+ou$X[1] <- 0
+Tt <- cumsum(dt * ou$X) # Fractional activity time
+ty[j] <- Tt[length(Tt)] # T_Y
 }
 #' Monte Carlo Simulation for Barrier Options using FATGBM Model
 #'
