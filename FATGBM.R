@@ -45,10 +45,23 @@ simulate_FATGBM <- function(S0, r, sigma, Y, dt, InvFeVector, piMeasure) {
 #'
 #' @return A list containing the simulated path `St` and the `ou` process.
 #' @export
-simulate_FATGBM_SRD <- function(S0, r, sigma, Y, dt, lambdaEps, A, invCdfArray) {
+simulate_FATGBM_SRD <- function(S0,
+  r,
+  sigma,
+  Y,
+  dt,
+  lambdaEps,
+  A,
+  invCdfArray,
+  T_min = -1) {
 #Call the fast shot-noise OU simulation (from your RGamma_OU.R script)
 #Note: You will need a suitable T_min (warm-up) passed or hardcoded
-ou <- rReciprocalGammaOU_Fast(lambdaEps = lambdaEps, A = A, dt = dt, Y = Y, T_min = -1)
+ou <- rReciprocalGammaOU_Fast(lambdaEps = lambdaEps,
+    A = A,
+    dt = dt,
+    Y = Y,
+    T_min = T_min,
+    invCdfArray = invCdfArray)
 ou$X[1] <- 0
 Tt <- cumsum(dt * ou$X)
 #Standard FATGBM construction
@@ -116,7 +129,12 @@ dt <- 1 / DaysInYear
 ty <- rep(0, m)
 for (j in 1:m) {
 # Using 'A' to match your Rg.OU definition
-ou <- rReciprocalGammaOU_Fast(lambdaEps = lambdaEps, A = A, dt = dt, Y = Y, T_min = -1)
+ou <- rReciprocalGammaOU_Fast(lambdaEps = lambdaEps,
+      A = A,
+      dt = dt,
+      Y = Y,
+      T_min = T_min,
+      invCdfArray = invCdfArray)
 ou$X[1] <- 0
 Tt <- cumsum(dt * ou$X) # Fractional activity time
 ty[j] <- Tt[length(Tt)] # T_Y
